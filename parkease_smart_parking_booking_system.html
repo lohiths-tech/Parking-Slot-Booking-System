@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkEase - Smart Car Parking System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0B0F19',
+                        darkCard: 'rgba(17, 24, 39, 0.85)',
+                        borderGlow: 'rgba(6, 182, 212, 0.3)',
+                        cyanNeon: '#06B6D4',
+                        cyanBright: '#22D3EE',
+                        greenNeon: '#10B981',
+                        redNeon: '#EF4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite',
+                        'shake': 'shake 0.4s ease-in-out'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)' },
+                            '50%': { boxShadow: '0 0 25px rgba(6, 182, 212, 0.8)' },
+                        },
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '20%, 60%': { transform: 'translateX(-6px)' },
+                            '40%, 80%': { transform: 'translateX(6px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0B0F19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #F3F4F6;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-panel-glow {
+            background: rgba(17, 24, 39, 0.9);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 229, 255, 0.15);
+        }
+
+        .parking-slot-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06B6D4;
+        }
+
+        .code-block {
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .page-section {
+            display: none;
+        }
+        .page-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- NAVIGATION BAR WITH PAGE TABS -->
+    <nav class="sticky top-0 z-40 glass-panel border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                        <i class="fa-solid fa-square-parking text-gray-950 text-2xl font-black"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-extrabold tracking-tight text-white block leading-none">
+                            Park<span class="text-cyan-400">Ease</span>
+                        </span>
+                        <span class="text-[10px] text-gray-400 tracking-wider uppercase font-semibold">Smart Systems</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links (Multi-page tabs) -->
+                <div class="hidden md:flex items-center space-x-2 text-sm font-medium">
+                    <button onclick="navigateTo('landing')" id="nav-landing" class="nav-btn px-4 py-2 rounded-xl text-gray-300 hover:text-cyan-400 transition flex items-center gap-2">
+                        <i class="fa-solid fa-rocket text-xs"></i> Welcome Screen
+                    </button>
+                    <button onclick="navigateTo('home')" id="nav-home" class="nav-btn px-4 py-2 rounded-xl text-cyan-400 bg-cyan-950/50 border border-cyan-800 transition flex items-center gap-2">
+                        <i class="fa-solid fa-house text-xs"></i> Home
+                    </button>
+                    <button onclick="navigateTo('parking')" id="nav-parking" class="nav-btn px-4 py-2 rounded-xl text-gray-300 hover:text-cyan-400 transition flex items-center gap-2">
+                        <i class="fa-solid fa-car text-xs"></i> Parking Slots
+                    </button>
+                    <button onclick="navigateTo('booking')" id="nav-booking" class="nav-btn px-4 py-2 rounded-xl text-gray-300 hover:text-cyan-400 transition flex items-center gap-2">
+                        <i class="fa-solid fa-ticket text-xs"></i> Book Parking
+                    </button>
+                    <button onclick="navigateTo('about')" id="nav-about" class="nav-btn px-4 py-2 rounded-xl text-gray-300 hover:text-cyan-400 transition flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-xs"></i> About Us
+                    </button>
+                    <button onclick="navigateTo('code')" id="nav-code" class="nav-btn px-4 py-2 rounded-xl text-emerald-400 bg-emerald-950/30 border border-emerald-800 hover:bg-emerald-900/40 transition flex items-center gap-2">
+                        <i class="fa-solid fa-code text-xs"></i> Source Code
+                    </button>
+                </div>
+
+                <!-- Live Clock & Quick Action -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden lg:block text-right">
+                        <div id="liveClock" class="text-xs font-mono text-cyan-400 font-bold">00:00:00 AM</div>
+                        <div class="text-[10px] text-gray-400 uppercase font-semibold">Live System Time</div>
+                    </div>
+                    <button onclick="navigateTo('booking')" class="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 hover:brightness-110 shadow-lg shadow-cyan-500/20 transition transform hover:-translate-y-0.5">
+                        Reserve Now
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Row -->
+        <div class="md:hidden flex overflow-x-auto p-2 border-t border-gray-800/80 gap-2 text-xs font-medium scrollbar-none">
+            <button onclick="navigateTo('landing')" id="mobile-nav-landing" class="px-3 py-1.5 rounded-lg text-gray-300 whitespace-nowrap">Welcome</button>
+            <button onclick="navigateTo('home')" id="mobile-nav-home" class="px-3 py-1.5 rounded-lg text-cyan-400 bg-cyan-950/50 whitespace-nowrap">Home</button>
+            <button onclick="navigateTo('parking')" id="mobile-nav-parking" class="px-3 py-1.5 rounded-lg text-gray-300 whitespace-nowrap">Parking Slots</button>
+            <button onclick="navigateTo('booking')" id="mobile-nav-booking" class="px-3 py-1.5 rounded-lg text-gray-300 whitespace-nowrap">Book Parking</button>
+            <button onclick="navigateTo('about')" id="mobile-nav-about" class="px-3 py-1.5 rounded-lg text-gray-300 whitespace-nowrap">About Us</button>
+            <button onclick="navigateTo('code')" id="mobile-nav-code" class="px-3 py-1.5 rounded-lg text-emerald-400 bg-emerald-950/30 whitespace-nowrap">Source Code</button>
+        </div>
+    </nav>
+
+    <!-- MAIN MULTI-PAGE CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- ================= PAGE 0: FULLSCREEN WELCOME / LANDING PAGE ================= -->
+        <div id="page-landing" class="page-section active py-6 sm:py-12">
+            <div class="max-w-5xl mx-auto text-center space-y-8">
+                <!-- Glowing Badge -->
+                <div class="inline-flex items-center space-x-3 px-4 py-2 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-400 text-xs font-bold tracking-widest uppercase shadow-lg shadow-cyan-500/20">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span>Welcome to ParkEase Portal</span>
+                </div>
+
+                <!-- Hero Heading -->
+                <div class="space-y-4">
+                    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-tight">
+                        Next-Gen Urban <br>
+                        <span class="bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 bg-clip-text text-transparent">
+                            Smart Car Parking System
+                        </span>
+                    </h1>
+                    <p class="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">
+                        Smart, Simple and Secure Parking for your Vehicle. Reserve real-time parking spaces with dynamic availability, live billing rates, and instant e-receipts.
+                    </p>
+                </div>
+
+                <!-- Action Launch CTA -->
+                <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <button onclick="navigateTo('home')" class="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-500 text-gray-950 font-black text-lg hover:brightness-110 shadow-2xl shadow-cyan-500/40 transition transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-circle-play text-xl"></i>
+                        <span>ENTER PORTAL / LAUNCH APP</span>
+                    </button>
+                    <button onclick="navigateTo('parking')" class="w-full sm:w-auto px-8 py-5 rounded-2xl glass-panel text-gray-200 font-bold text-base hover:bg-gray-800 hover:text-white transition flex items-center justify-center gap-2 border border-gray-700">
+                        <i class="fa-solid fa-car text-cyan-400"></i> View Live Slots
+                    </button>
+                </div>
+
+                <!-- Feature Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 text-left">
+                    <div class="glass-panel p-6 rounded-2xl border border-gray-800 hover:border-cyan-500/50 transition">
+                        <div class="w-12 h-12 rounded-xl bg-cyan-950 text-cyan-400 flex items-center justify-center text-xl mb-4 border border-cyan-800">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-1">Live Sensors & Tracking</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">Instant real-time sync across 12 smart slots with occupation status detection.</p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-gray-800 hover:border-emerald-500/50 transition">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-950 text-emerald-400 flex items-center justify-center text-xl mb-4 border border-emerald-800">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-1">Automated Tariff Billing</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">Dynamic calculation at ₹30/hr rate with instant receipt voucher generation.</p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-gray-800 hover:border-cyan-500/50 transition">
+                        <div class="w-12 h-12 rounded-xl bg-cyan-950 text-cyan-400 flex items-center justify-center text-xl mb-4 border border-cyan-800">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-1">Guaranteed Space</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">Prevents double booking with collision-free slot allocation guardrails.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 1: HOME PAGE ================= -->
+        <div id="page-home" class="page-section space-y-12">
+                </div>
+            </div>
+
+            <!-- HOME STATS COUNTERS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-4">
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800">
+                    <span class="text-xs font-semibold text-gray-400 uppercase">Total Slots</span>
+                    <div class="flex items-baseline space-x-2 mt-2">
+                        <span id="stat-total" class="text-3xl font-extrabold text-white">12</span>
+                        <span class="text-xs text-gray-400">Total</span>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800 border-l-4 border-l-emerald-500">
+                    <span class="text-xs font-semibold text-gray-400 uppercase">Available Slots</span>
+                    <div class="flex items-baseline space-x-2 mt-2">
+                        <span id="stat-available" class="text-3xl font-extrabold text-emerald-400">9</span>
+                        <span class="text-xs text-gray-400">Ready</span>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800 border-l-4 border-l-red-500">
+                    <span class="text-xs font-semibold text-gray-400 uppercase">Occupied Slots</span>
+                    <div class="flex items-baseline space-x-2 mt-2">
+                        <span id="stat-occupied" class="text-3xl font-extrabold text-red-400">3</span>
+                        <span class="text-xs text-gray-400">Parked</span>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800">
+                    <span class="text-xs font-semibold text-gray-400 uppercase">Parking Rate</span>
+                    <div class="flex items-baseline space-x-1 mt-2">
+                        <span class="text-3xl font-extrabold text-cyan-400">₹30</span>
+                        <span class="text-xs text-gray-400">/ Hour</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend & Quick Information -->
+            <div class="glass-panel p-6 rounded-2xl border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-base font-bold text-white">Parking Slot Indicator Legend</h3>
+                    <p class="text-xs text-gray-400">Recognize slot availability status in our parking garage</p>
+                </div>
+                <div class="flex items-center space-x-6 text-sm font-medium">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50"></span>
+                        <span class="text-gray-200">🟢 Available</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3.5 h-3.5 rounded-full bg-red-500 shadow-lg shadow-red-500/50"></span>
+                        <span class="text-gray-200">🔴 Occupied</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50"></span>
+                        <span class="text-gray-200">🔵 Selected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 2: PARKING SLOTS PAGE ================= -->
+        <div id="page-parking" class="page-section space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-3">
+                        <i class="fa-solid fa-grip text-cyan-400"></i> Parking Slot Layout
+                    </h2>
+                    <p class="text-xs sm:text-sm text-gray-400 mt-1">Select an available parking slot (Green) to proceed with booking</p>
+                </div>
+
+                <!-- Action Bar -->
+                <div id="selectedSlotBanner" class="hidden glass-panel-glow px-4 py-2 rounded-xl flex items-center space-x-4 border border-cyan-400">
+                    <div class="text-xs">
+                        <span class="text-gray-400 block">Current Choice:</span>
+                        <span id="bannerSlotName" class="font-extrabold text-cyan-300 text-sm">Slot A1</span>
+                    </div>
+                    <button onclick="navigateTo('booking')" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-gray-950 text-xs font-bold transition">
+                        Book Slot Now <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parking Grid Container (12 Slots Layout) -->
+            <div id="parking-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <!-- Dynamically generated via JS -->
+            </div>
+        </div>
+
+        <!-- ================= PAGE 3: BOOKING FORM PAGE ================= -->
+        <div id="page-booking" class="page-section space-y-6">
+            <div class="max-w-3xl mx-auto">
+                <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-gray-800 space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-800">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i class="fa-solid fa-file-signature text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl sm:text-2xl font-bold text-white">Book Your Parking Slot</h2>
+                                <p class="text-xs text-gray-400">Enter vehicle details and duration to reserve your space</p>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-cyan-950 text-cyan-400 px-3 py-1 rounded-full border border-cyan-800 font-mono">₹30 / Hour</span>
+                    </div>
+
+                    <form id="bookingForm" onsubmit="handleBookingSubmit(event)" class="space-y-6">
+                        <!-- Vehicle Number -->
+                        <div>
+                            <label for="vehicleNo" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                Vehicle Plate Number <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                    <i class="fa-solid fa-id-card"></i>
+                                </div>
+                                <input type="text" id="vehicleNo" required placeholder="e.g. TN-37-AB-1234"
+                                    class="w-full pl-10 pr-4 py-3 bg-gray-900/80 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition font-mono uppercase tracking-wider">
+                            </div>
+                        </div>
+
+                        <!-- Dropdown & Selected Slot Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Vehicle Type -->
+                            <div>
+                                <label for="vehicleType" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                    Vehicle Type
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                        <i class="fa-solid fa-car text-sm"></i>
+                                    </div>
+                                    <select id="vehicleType" 
+                                        class="w-full pl-10 pr-8 py-3 bg-gray-900/80 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition appearance-none">
+                                        <option value="Car">Car (Standard)</option>
+                                        <option value="SUV">SUV / Heavy Vehicle</option>
+                                        <option value="Bike">Bike / Two-Wheeler</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Parking Slot Dropdown (Auto syncs with layout page) -->
+                            <div>
+                                <label for="slotSelect" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                    Choose Parking Slot
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                    </div>
+                                    <select id="slotSelect" onchange="onSlotDropdownChange(this.value)"
+                                        class="w-full pl-10 pr-8 py-3 bg-gray-900/80 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition appearance-none font-bold">
+                                        <!-- JS dynamic options -->
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Duration Hours -->
+                        <div>
+                            <label for="durationHours" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                Parking Duration (Hours)
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <input type="number" id="durationHours" min="1" max="24" value="2" oninput="calculateTotalFee()" required
+                                    class="w-full pl-10 pr-4 py-3 bg-gray-900/80 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition font-bold">
+                            </div>
+                        </div>
+
+                        <!-- Total Fee Summary Card -->
+                        <div class="p-5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 space-y-3">
+                            <div class="flex justify-between text-xs text-gray-300">
+                                <span>Parking Rate Fee:</span>
+                                <span>₹30.00 / Hour</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-300">
+                                <span>Duration Selected:</span>
+                                <span id="summaryHours" class="font-semibold text-white">2 Hours</span>
+                            </div>
+                            <div class="border-t border-cyan-500/20 pt-3 flex justify-between items-center">
+                                <div>
+                                    <span class="text-sm font-bold text-white block">Total Payable Fee</span>
+                                    <span class="text-[10px] text-gray-400">Calculated automatically</span>
+                                </div>
+                                <span id="summaryTotalFee" class="text-3xl font-black text-cyan-400">₹60</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" id="submitBtn"
+                            class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-950 font-extrabold text-base hover:brightness-110 shadow-lg shadow-cyan-500/20 transition transform active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Confirm & Book Parking Slot</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 4: ABOUT US PAGE ================= -->
+        <div id="page-about" class="page-section space-y-8">
+            <div class="text-center max-w-2xl mx-auto space-y-3">
+                <h2 class="text-3xl font-black text-white">About ParkEase System</h2>
+                <p class="text-sm text-gray-400">A modern web-based smart car parking slot booking system developed for college web technology micro projects.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-950 text-cyan-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Real-Time Slot Tracking</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        Tracks parking slot status dynamically using vanilla JavaScript, updating counters instantly as slots are booked or freed.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-950 text-emerald-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Automated Rate Billing</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        Features an automated tariff calculator configured at ₹30 per hour with live summary breakdown and receipt generation.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-950 text-cyan-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Fully Responsive</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        Designed with Tailwind CSS for mobile phones, tablets, and desktop displays with smooth page transitions.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Developer Project Badge -->
+            <div class="glass-panel p-6 rounded-2xl border border-cyan-500/30 max-w-2xl mx-auto flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-gray-950 text-2xl font-black shrink-0">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-white">Web Technology Micro Project</h4>
+                    <p class="text-xs text-gray-400">Built using HTML5, CSS3 (Tailwind CSS framework), and JavaScript.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PAGE 5: CODE VIEW PAGE ================= -->
+        <div id="page-code" class="page-section space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-code text-emerald-400"></i> Project Source Code Separator
+                    </h2>
+                    <p class="text-xs text-gray-400">Copy these individual code blocks into separate files (`index.html`, `style.css`, `script.js`) for your college project structure.</p>
+                </div>
+                
+                <div class="flex space-x-2 bg-gray-900 p-1.5 rounded-xl border border-gray-800">
+                    <button onclick="switchCodeTab('html')" id="tab-html" class="px-3 py-1.5 text-xs font-bold rounded-lg text-cyan-400 bg-cyan-950 border border-cyan-800">index.html</button>
+                    <button onclick="switchCodeTab('css')" id="tab-css" class="px-3 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white">style.css</button>
+                    <button onclick="switchCodeTab('js')" id="tab-js" class="px-3 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white">script.js</button>
+                </div>
+            </div>
+
+            <div class="bg-gray-950 rounded-2xl p-4 sm:p-6 border border-gray-800 text-xs text-cyan-300 font-mono relative">
+                <button onclick="copyCodeBlock()" class="absolute top-4 right-4 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-xs font-sans font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i> Copy File
+                </button>
+
+                <pre id="codeDisplayHTML" class="code-block text-cyan-300">
+&lt;!-- ================= index.html ================= --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en" class="dark"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;ParkEase - Smart Car Parking System&lt;/title&gt;
+    &lt;link rel="stylesheet" href="style.css"&gt;
+    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;!-- Fixed Navigation --&gt;
+    &lt;nav class="navbar"&gt;
+        &lt;div class="logo"&gt;Park&lt;span&gt;Ease&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="nav-links"&gt;
+            &lt;a href="#home"&gt;Home&lt;/a&gt;
+            &lt;a href="#parking"&gt;Parking Slots&lt;/a&gt;
+            &lt;a href="#booking"&gt;Book Parking&lt;/a&gt;
+            &lt;a href="#about"&gt;About Us&lt;/a&gt;
+        &lt;/div&gt;
+    &lt;/nav&gt;
+
+    &lt;!-- Parking Layout Grid --&gt;
+    &lt;div id="parking-grid" class="grid"&gt;&lt;/div&gt;
+
+    &lt;!-- Booking Form --&gt;
+    &lt;form id="bookingForm" onsubmit="handleBookingSubmit(event)"&gt;
+        &lt;input type="text" id="vehicleNo" placeholder="TN-37-AB-1234" required&gt;
+        &lt;select id="vehicleType"&gt;
+            &lt;option value="Car"&gt;Car&lt;/option&gt;
+            &lt;option value="SUV"&gt;SUV&lt;/option&gt;
+            &lt;option value="Bike"&gt;Bike&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;select id="slotSelect"&gt;&lt;/select&gt;
+        &lt;input type="number" id="durationHours" value="2" min="1" max="24"&gt;
+        &lt;button type="submit"&gt;Confirm Booking&lt;/button&gt;
+    &lt;/form&gt;
+
+    &lt;script src="script.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+                </pre>
+
+                <pre id="codeDisplayCSS" class="code-block hidden text-emerald-300">
+/* ================= style.css ================= */
+body {
+    background-color: #0B0F19;
+    color: #F3F4F6;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+}
+
+.glass-panel {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+}
+
+.parking-slot-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.parking-slot-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.3);
+}
+                </pre>
+
+                <pre id="codeDisplayJS" class="code-block hidden text-cyan-200">
+// ================= script.js =================
+const HOURLY_RATE = 30;
+let selectedSlotId = null;
+
+const slots = [
+    { id: 'A1', occupied: false }, { id: 'A2', occupied: true },
+    { id: 'A3', occupied: false }, { id: 'A4', occupied: false },
+    { id: 'B1', occupied: false }, { id: 'B2', occupied: true },
+    { id: 'B3', occupied: false }, { id: 'B4', occupied: false },
+    { id: 'C1', occupied: true },  { id: 'C2', occupied: false },
+    { id: 'C3', occupied: false }, { id: 'C4', occupied: false }
+];
+
+function calculateTotalFee() {
+    const hours = parseInt(document.getElementById('durationHours').value) || 1;
+    return hours * HOURLY_RATE;
+}
+
+function handleBookingSubmit(event) {
+    event.preventDefault();
+    // Booking logic and state updates
+}
+                </pre>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- BOOKING RECEIPT CONFIRMATION MODAL -->
+    <div id="bookingModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel-glow max-w-md w-full rounded-3xl p-6 sm:p-8 relative border border-cyan-500/50 space-y-6 animate-pulse-glow">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-3xl mx-auto">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h3 class="text-2xl font-black text-white">Parking Successfully Booked!</h3>
+                <p class="text-xs text-gray-400">Your reservation receipt details</p>
+            </div>
+
+            <!-- Ticket Details Card -->
+            <div class="bg-gray-900/90 rounded-2xl p-5 border border-gray-800 space-y-3 text-sm">
+                <div class="flex justify-between border-b border-gray-800 pb-2">
+                    <span class="text-gray-400 text-xs uppercase font-medium">Booking ID</span>
+                    <span id="modalBookingId" class="font-mono font-bold text-cyan-400">#PE-0000</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Vehicle Number:</span>
+                    <span id="modalVehicleNo" class="font-bold text-white font-mono uppercase">--</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Vehicle Type:</span>
+                    <span id="modalVehicleType" class="text-white">--</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Parking Slot:</span>
+                    <span id="modalSlot" class="font-bold text-cyan-300">--</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Duration:</span>
+                    <span id="modalDuration" class="text-white">--</span>
+                </div>
+                <div class="flex justify-between border-t border-gray-800 pt-2 text-base font-bold">
+                    <span class="text-gray-300">Total Fee Paid:</span>
+                    <span id="modalTotalFee" class="text-emerald-400">₹0</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold text-xs transition">
+                    Done & Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-gray-800 glass-panel mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-400 space-y-1">
+            <p>© 2026 ParkEase | Smart Car Parking System</p>
+            <p class="text-[10px] text-gray-500">Designed for college web technology micro project demonstration</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        const HOURLY_RATE = 30;
+        let selectedSlotId = null;
+
+        // 12 Parking slots array pre-populated
+        const slots = [
+            { id: 'A1', occupied: false },
+            { id: 'A2', occupied: true },
+            { id: 'A3', occupied: false },
+            { id: 'A4', occupied: false },
+            { id: 'B1', occupied: false },
+            { id: 'B2', occupied: true },
+            { id: 'B3', occupied: false },
+            { id: 'B4', occupied: false },
+            { id: 'C1', occupied: true },
+            { id: 'C2', occupied: false },
+            { id: 'C3', occupied: false },
+            { id: 'C4', occupied: false },
+        ];
+
+        window.onload = function() {
+            renderParkingGrid();
+            populateSlotDropdown();
+            updateCounters();
+            calculateTotalFee();
+            startLiveClock();
+        };
+
+        // Live Clock Function
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+            }, 1000);
+        }
+
+        // Page Navigation Switcher
+        function navigateTo(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            // Show requested page
+            const targetPage = document.getElementById(`page-${pageId}`);
+            if (targetPage) targetPage.classList.add('active');
+
+            // Reset navigation styles
+            const navIds = ['landing', 'home', 'parking', 'booking', 'about', 'code'];
+            navIds.forEach(id => {
+                const desktopBtn = document.getElementById(`nav-${id}`);
+                const mobileBtn = document.getElementById(`mobile-nav-${id}`);
+                if (desktopBtn) {
+                    desktopBtn.className = id === pageId 
+                        ? "nav-btn px-4 py-2 rounded-xl text-cyan-400 bg-cyan-950/50 border border-cyan-800 transition flex items-center gap-2 font-bold" 
+                        : "nav-btn px-4 py-2 rounded-xl text-gray-300 hover:text-cyan-400 transition flex items-center gap-2";
+                }
+                if (mobileBtn) {
+                    mobileBtn.className = id === pageId 
+                        ? "px-3 py-1.5 rounded-lg text-cyan-400 bg-cyan-950/50 whitespace-nowrap font-bold" 
+                        : "px-3 py-1.5 rounded-lg text-gray-300 whitespace-nowrap";
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Render Parking Grid Slots Dynamically
+        function renderParkingGrid() {
+            const gridContainer = document.getElementById('parking-grid');
+            gridContainer.innerHTML = '';
+
+            slots.forEach(slot => {
+                const isSelected = selectedSlotId === slot.id;
+                
+                const slotCard = document.createElement('div');
+                slotCard.id = `slot-card-${slot.id}`;
+                
+                let cardClasses = "parking-slot-card p-5 rounded-2xl flex flex-col items-center justify-between min-h-[140px] cursor-pointer relative border transition-all ";
+                
+                if (slot.occupied) {
+                    cardClasses += "bg-red-950/20 border-red-500/40 text-red-400 cursor-not-allowed opacity-90";
+                } else if (isSelected) {
+                    cardClasses += "glass-panel-glow border-cyan-400 text-cyan-300 ring-2 ring-cyan-400/50 scale-105";
+                } else {
+                    cardClasses += "glass-panel border-emerald-500/30 text-emerald-400 hover:border-emerald-400 hover:-translate-y-1";
+                }
+
+                slotCard.className = cardClasses;
+                slotCard.onclick = () => selectSlot(slot.id);
+
+                let iconClass = "fa-solid fa-car text-3xl my-2 ";
+                let statusBadge = "";
+
+                if (slot.occupied) {
+                    iconClass += "text-red-400";
+                    statusBadge = `<span class="text-[10px] font-bold uppercase bg-red-950 text-red-400 px-2 py-0.5 rounded border border-red-800">Occupied</span>`;
+                } else if (isSelected) {
+                    iconClass += "text-cyan-400 animate-pulse";
+                    statusBadge = `<span class="text-[10px] font-bold uppercase bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded border border-cyan-700">Selected</span>`;
+                } else {
+                    iconClass += "text-emerald-400/80";
+                    statusBadge = `<span class="text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800">Available</span>`;
+                }
+
+                slotCard.innerHTML = `
+                    <div class="w-full flex justify-between items-center text-xs font-mono font-bold">
+                        <span class="text-white text-base font-extrabold">${slot.id}</span>
+                        ${statusBadge}
+                    </div>
+                    <i class="${iconClass}"></i>
+                    <span class="text-xs font-semibold">${slot.occupied ? 'Occupied' : (isSelected ? 'Chosen' : 'Click to Pick')}</span>
+                `;
+
+                gridContainer.appendChild(slotCard);
+            });
+        }
+
+        // Populate Slot Dropdown in Booking Form
+        function populateSlotDropdown() {
+            const dropdown = document.getElementById('slotSelect');
+            dropdown.innerHTML = '';
+
+            const availableSlots = slots.filter(s => !s.occupied);
+            
+            if (availableSlots.length === 0) {
+                dropdown.innerHTML = `<option value="">No Slots Available</option>`;
+                return;
+            }
+
+            availableSlots.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = `Slot ${s.id} (Available)`;
+                if (s.id === selectedSlotId) opt.selected = true;
+                dropdown.appendChild(opt);
+            });
+
+            if (!selectedSlotId && availableSlots.length > 0) {
+                selectedSlotId = availableSlots[0].id;
+            }
+        }
+
+        // Select Slot Event
+        function selectSlot(slotId) {
+            const targetSlot = slots.find(s => s.id === slotId);
+
+            if (targetSlot.occupied) {
+                const card = document.getElementById(`slot-card-${slotId}`);
+                card.classList.add('animate-shake');
+                setTimeout(() => card.classList.remove('animate-shake'), 400);
+                return;
+            }
+
+            selectedSlotId = slotId;
+            renderParkingGrid();
+            populateSlotDropdown();
+
+            // Update top action banner
+            document.getElementById('selectedSlotBanner').classList.remove('hidden');
+            document.getElementById('bannerSlotName').innerText = `Slot ${slotId}`;
+        }
+
+        function onSlotDropdownChange(val) {
+            selectedSlotId = val;
+            renderParkingGrid();
+        }
+
+        // Fee Calculator
+        function calculateTotalFee() {
+            const hoursInput = document.getElementById('durationHours').value;
+            const hours = parseInt(hoursInput) || 1;
+            const total = hours * HOURLY_RATE;
+
+            document.getElementById('summaryHours').innerText = `${hours} Hour${hours > 1 ? 's' : ''}`;
+            document.getElementById('summaryTotalFee').innerText = `₹${total}`;
+        }
+
+        // Handle Booking Submission
+        function handleBookingSubmit(event) {
+            event.preventDefault();
+
+            if (!selectedSlotId) return;
+
+            const vehicleNo = document.getElementById('vehicleNo').value.trim();
+            const vehicleType = document.getElementById('vehicleType').value;
+            const hours = parseInt(document.getElementById('durationHours').value) || 1;
+            const totalFee = hours * HOURLY_RATE;
+            const bookingId = '#PE-' + Math.floor(10000 + Math.random() * 90000);
+
+            // Reserve Slot
+            const targetSlot = slots.find(s => s.id === selectedSlotId);
+            if (targetSlot) targetSlot.occupied = true;
+
+            // Fill Receipt Details
+            document.getElementById('modalBookingId').innerText = bookingId;
+            document.getElementById('modalVehicleNo').innerText = vehicleNo;
+            document.getElementById('modalVehicleType').innerText = vehicleType;
+            document.getElementById('modalSlot').innerText = `Slot ${selectedSlotId}`;
+            document.getElementById('modalDuration').innerText = `${hours} Hour(s)`;
+            document.getElementById('modalTotalFee').innerText = `₹${totalFee}`;
+
+            // Open Modal
+            document.getElementById('bookingModal').classList.remove('hidden');
+
+            // Reset form
+            selectedSlotId = null;
+            document.getElementById('bookingForm').reset();
+            document.getElementById('durationHours').value = 2;
+            document.getElementById('selectedSlotBanner').classList.add('hidden');
+
+            // Refresh slots and counts
+            renderParkingGrid();
+            populateSlotDropdown();
+            updateCounters();
+            calculateTotalFee();
+        }
+
+        function updateCounters() {
+            const total = slots.length;
+            const occupied = slots.filter(s => s.occupied).length;
+            const available = total - occupied;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-available').innerText = available;
+            document.getElementById('stat-occupied').innerText = occupied;
+            
+            const freePct = Math.round((available / total) * 100);
+            document.getElementById('home-available-pct').innerText = `${freePct}% Free`;
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').classList.add('hidden');
+            navigateTo('home');
+        }
+
+        // Code Inspector Tabs
+        function switchCodeTab(tab) {
+            document.getElementById('codeDisplayHTML').classList.add('hidden');
+            document.getElementById('codeDisplayCSS').classList.add('hidden');
+            document.getElementById('codeDisplayJS').classList.add('hidden');
+
+            document.getElementById('tab-html').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white";
+            document.getElementById('tab-css').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white";
+            document.getElementById('tab-js').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-gray-400 hover:text-white";
+
+            if (tab === 'html') {
+                document.getElementById('codeDisplayHTML').classList.remove('hidden');
+                document.getElementById('tab-html').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-cyan-400 bg-cyan-950 border border-cyan-800";
+            } else if (tab === 'css') {
+                document.getElementById('codeDisplayCSS').classList.remove('hidden');
+                document.getElementById('tab-css').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-emerald-400 bg-emerald-950 border border-emerald-800";
+            } else if (tab === 'js') {
+                document.getElementById('codeDisplayJS').classList.remove('hidden');
+                document.getElementById('tab-js').className = "px-3 py-1.5 text-xs font-bold rounded-lg text-cyan-400 bg-cyan-950 border border-cyan-800";
+            }
+        }
+
+        function copyCodeBlock() {
+            let activeCode = "";
+            if (!document.getElementById('codeDisplayHTML').classList.contains('hidden')) {
+                activeCode = document.getElementById('codeDisplayHTML').innerText;
+            } else if (!document.getElementById('codeDisplayCSS').classList.contains('hidden')) {
+                activeCode = document.getElementById('codeDisplayCSS').innerText;
+            } else {
+                activeCode = document.getElementById('codeDisplayJS').innerText;
+            }
+
+            const tempInput = document.createElement("textarea");
+            tempInput.value = activeCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+
+            alert("Code copied to clipboard!");
+        }
+    </script>
+</body>
+</html>
